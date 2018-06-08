@@ -87,11 +87,6 @@ const char chartables_typename[] = "chartables";
  ******************************************************************************
  */
 
-static void push_chartables_meta (lua_State *L) {
-  lua_pushinteger (L, INDEX_CHARTABLES_META);
-  lua_rawget (L, ALG_ENVIRONINDEX);
-}
-
 static int getcflags (lua_State *L, int pos) {
   switch (lua_type (L, pos)) {
     case LUA_TNONE:
@@ -138,6 +133,11 @@ static void checkarg_dfa_exec (lua_State *L, TArgExec *argE, TPcre **ud) {
 }
 #endif
 
+static void push_chartables_meta (lua_State *L) {
+  lua_pushinteger (L, INDEX_CHARTABLES_META);
+  lua_rawget (L, ALG_ENVIRONINDEX);
+}
+
 static int Lpcre_maketables (lua_State *L) {
   *(const void**)lua_newuserdata (L, sizeof(void*)) = pcre_maketables();
   push_chartables_meta (L);
@@ -169,6 +169,12 @@ static int chartables_gc (lua_State *L) {
   return 0;
 }
 
+static int chartables_tostring (lua_State *L) {
+  void **ud = check_chartables (L, 1);
+  lua_pushfstring (L, "%s (%p)", chartables_typename, ud);
+  return 1;
+}
+
 static void checkarg_compile (lua_State *L, int pos, TArgComp *argC) {
   argC->locale = NULL;
   argC->tables = NULL;
@@ -177,7 +183,7 @@ static void checkarg_compile (lua_State *L, int pos, TArgComp *argC) {
       argC->locale = lua_tostring (L, pos);
     else {
       argC->tablespos = pos;
-      argC->tables = *check_chartables (L, pos);
+      argC->tables = (const unsigned char*) *check_chartables (L, pos);
     }
   }
 }
@@ -341,12 +347,6 @@ static int Lpcre_tostring (lua_State *L) {
   return 1;
 }
 
-static int chartables_tostring (lua_State *L) {
-  void **ud = check_chartables (L, 1);
-  lua_pushfstring (L, "%s (%p)", chartables_typename, ud);
-  return 1;
-}
-
 static int Lpcre_version (lua_State *L) {
   lua_pushstring (L, pcre_version ());
   return 1;
@@ -369,16 +369,24 @@ static int Lpcre_fullinfo (lua_State *L) {
   SET_INFO_FIELD (L, ud, PCRE_INFO_FIRSTBYTE,           "FIRSTBYTE",           int)
   SET_INFO_FIELD (L, ud, PCRE_INFO_HASCRORLF,           "HASCRORLF",           int)
   SET_INFO_FIELD (L, ud, PCRE_INFO_JCHANGED,            "JCHANGED",            int)
+#ifdef PCRE_INFO_JIT
   SET_INFO_FIELD (L, ud, PCRE_INFO_JIT,                 "JIT",                 int)
+#endif
+#ifdef PCRE_INFO_JITSIZE
   SET_INFO_FIELD (L, ud, PCRE_INFO_JITSIZE,             "JITSIZE",             size_t);
+#endif
 #ifdef PCRE_INFO_MATCH_EMPTY
   SET_INFO_FIELD (L, ud, PCRE_INFO_MATCH_EMPTY,         "MATCH_EMPTY",         int)
 #endif
 #ifdef PCRE_INFO_MATCHLIMIT
   SET_INFO_FIELD (L, ud, PCRE_INFO_MATCHLIMIT,          "MATCHLIMIT",          uint32_t)
 #endif
+#ifdef PCRE_INFO_MAXLOOKBEHIND
   SET_INFO_FIELD (L, ud, PCRE_INFO_MAXLOOKBEHIND,       "MAXLOOKBEHIND",       int) /* int ? */
+#endif
+#ifdef PCRE_INFO_MINLENGTH
   SET_INFO_FIELD (L, ud, PCRE_INFO_MINLENGTH,           "MINLENGTH",           int)
+#endif
   SET_INFO_FIELD (L, ud, PCRE_INFO_OKPARTIAL,           "OKPARTIAL",           int)
   SET_INFO_FIELD (L, ud, PCRE_INFO_OPTIONS,             "OPTIONS",             unsigned long)
 #ifdef PCRE_INFO_RECURSIONLIMIT

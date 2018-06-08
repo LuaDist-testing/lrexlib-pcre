@@ -102,7 +102,7 @@ static int getcflags (lua_State *L, int pos) {
 
 static int generate_error (lua_State *L, const TOnig *ud, int errcode) {
   char buf [ONIG_MAX_ERROR_MESSAGE_LEN];
-  onig_error_code_to_str(buf, errcode, ud->einfo);
+  onig_error_code_to_str((unsigned char*) buf, errcode, &ud->einfo);
   return luaL_error(L, buf);
 }
 
@@ -206,7 +206,7 @@ static void checkarg_compile (lua_State *L, int pos, TArgComp *argC) {
 */
 static int LOnig_setdefaultsyntax (lua_State *L) {
   (void)luaL_checkstring(L, 1);
-  onig_set_default_syntax(getsyntax(L, 1));
+  onig_set_default_syntax((OnigSyntaxType*) getsyntax(L, 1));
   return 0;
 }
 
@@ -286,6 +286,12 @@ static int split_exec (TOnig *ud, TArgExec *argE, int st) {
   return gsub_exec(ud, argE, st);
 }
 
+static int LOnig_capturecount (lua_State *L) {
+  TOnig *ud = check_ud(L);
+  lua_pushinteger(L, onig_number_of_captures(ud->reg));
+  return 1;
+}
+
 static int LOnig_gc (lua_State *L) {
   TOnig *ud = check_ud (L);
   if (ud->reg) {           /* precaution against "manual" __gc calling */
@@ -318,6 +324,7 @@ static const luaL_Reg r_methods[] = {
   { "tfind",       algm_tfind },    /* old name: match */
   { "find",        algm_find },
   { "match",       algm_match },
+  { "capturecount", LOnig_capturecount },
   { "__gc",        LOnig_gc },
   { "__tostring",  LOnig_tostring },
   { NULL, NULL }
