@@ -1,16 +1,15 @@
 -- This file was automatically generated for the LuaDist project.
 
 package="lrexlib-pcre"
-version="2.3.0-1"
+version="2.4.0-1"
 -- LuaDist source
 source = {
-  tag = "2.3.0-1",
+  tag = "2.4.0-1",
   url = "git://github.com/LuaDist-testing/lrexlib-pcre.git"
 }
 -- Original source
 -- source = {
---    url = "http://luaforge.net/frs/download.php/3439/lrexlib-2.3.0.zip",
---    md5 = "795c33965fb6eb0a981aa419028e3ef0"
+--    url = "http://luaforge.net/frs/download.php/3599/lrexlib-2.4.0.zip"
 -- }
 description = {
    summary = "Lua binding of the PCRE regular expression library.",
@@ -34,7 +33,7 @@ build = {
    type = "module",
    modules = {
       rex_pcre = {
-         sources = {"src/common.c", "src/lpcre.c", "src/lpcre_f.c"},
+         sources = {"src/common.c", "src/pcre/lpcre.c", "src/pcre/lpcre_f.c"},
          libraries = {"pcre"},
          incdirs = {"$(PCRE_INCDIR)"},
          libdirs = {"$(PCRE_LIBDIR)"}

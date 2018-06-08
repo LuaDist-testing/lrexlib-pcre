@@ -1,6 +1,6 @@
 # makefile for rex_posix library
 
-include defaults.mak
+include ../defaults.mak
 
 # === USER SETTINGS ===
 # ===========================================================================
@@ -31,9 +31,9 @@ TRG = rex_posix
 # ===========================================================================
 # === END OF USER SETTINGS ===
 
-OBJ    = lposix.o common.o
+OBJ    = lposix.o ../common.o
 
-include common.mak
+include ../common.mak
 
 # static POSIX regexp library binding
 ar_posix: $(TRG_AR)
@@ -42,7 +42,7 @@ ar_posix: $(TRG_AR)
 so_posix: $(TRG_SO)
 
 # Dependencies
-lposix.o: lposix.c common.h algo.h
-common.o: common.c common.h
+lposix.o: lposix.c ../common.h ../algo.h
+../common.o: ../common.c ../common.h
 
 # (End of Makefile)

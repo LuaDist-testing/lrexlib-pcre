@@ -9,7 +9,7 @@
 
 #include "lua.h"
 #include "lauxlib.h"
-#include "common.h"
+#include "../common.h"
 
 extern int Lpcre_get_flags (lua_State *L);
 extern int Lpcre_config (lua_State *L);
@@ -24,6 +24,8 @@ extern flag_pair pcre_error_flags[];
 #ifndef REX_OPENLIB
 #  define REX_OPENLIB luaopen_rex_pcre
 #endif
+
+#define REX_TYPENAME REX_LIBNAME"_regex"
 
 #define ALG_CFLAGS_DFLT 0
 #define ALG_EFLAGS_DFLT 0
@@ -73,9 +75,7 @@ static void do_named_subpatterns (lua_State *L, TPcre *ud, const char *text);
 #  define DO_NAMED_SUBPATTERNS do_named_subpatterns
 #endif
 
-const char pcre_typename[] = REX_LIBNAME"_regex";
-
-#include "algo.h"
+#include "../algo.h"
 
 /* Locations of the 2 permanent tables in the function environment */
 #define INDEX_CHARTABLES_META  1      /* chartables type's metatable */
@@ -113,7 +113,7 @@ static int getcflags (lua_State *L, int pos) {
       return res;
     }
     default:
-      return luaL_argerror (L, pos, "number or string expected");
+      return luaL_typerror (L, pos, "number or string");
   }
 }
 
@@ -345,9 +345,9 @@ static int Lpcre_gc (lua_State *L) {
 static int Lpcre_tostring (lua_State *L) {
   TPcre *ud = check_ud (L);
   if (ud->freed == 0)
-    lua_pushfstring (L, "%s (%p)", pcre_typename, (void*)ud);
+    lua_pushfstring (L, "%s (%p)", REX_TYPENAME, (void*)ud);
   else
-    lua_pushfstring (L, "%s (deleted)", pcre_typename);
+    lua_pushfstring (L, "%s (deleted)", REX_TYPENAME);
   return 1;
 }
 

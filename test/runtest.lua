@@ -48,6 +48,7 @@ local avail_tests = {
   pcre      = { lib = "rex_pcre",     "common_sets", "pcre_sets", "pcre_sets2", },
   pcre_nr   = { lib = "rex_pcre_nr",  "common_sets", "pcre_sets", "pcre_sets2", },
   pcre45    = { lib = "rex_pcre45",   "common_sets", "pcre_sets", "pcre_sets2", },
+  onig      = { lib = "rex_onig",     "common_sets", "onig_sets", }
 }
 
 do
@@ -86,6 +87,7 @@ do
   end
   -- do tests
   for _, test in ipairs (tests) do
+    package.loaded[test.lib] = nil -- to force-reload the tested library
     for _, setfile in ipairs (test) do
       nerr = nerr + test_library (test.lib, setfile, verbose)
     end

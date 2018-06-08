@@ -25,10 +25,12 @@ typedef struct {
 typedef struct {            /* compile arguments */
   const char * pattern;
   size_t       patlen;
+  void       * ud;
   int          cflags;
-  const char * locale;
-  const unsigned char * tables;
-  int          tablespos;
+  const char * locale;            /* PCRE, Oniguruma */
+  const unsigned char * tables;   /* PCRE */
+  int          tablespos;         /* PCRE */
+  void       * syntax;            /* Oniguruma */
 } TArgComp;
 
 typedef struct {            /* exec arguments */
@@ -38,10 +40,10 @@ typedef struct {            /* exec arguments */
   int          eflags;
   int          funcpos;
   int          maxmatch;
-  int          funcpos2;      /* used with gsub */
-  int          reptype;       /* used with gsub */
-  size_t       ovecsize;      /* used with dfa_exec */
-  size_t       wscount;       /* used with dfa_exec */
+  int          funcpos2;          /* used with gsub */
+  int          reptype;           /* used with gsub */
+  size_t       ovecsize;          /* PCRE: dfa_exec */
+  size_t       wscount;           /* PCRE: dfa_exec */
 } TArgExec;
 
 struct tagFreeList; /* forward declaration */
