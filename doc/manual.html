@@ -454,7 +454,8 @@ below).</p>
 </tr>
 <tr><td>repl</td>
 <td>substitution source</td>
-<td>string, function or table</td>
+<td>string, function, table,
+<tt class="docutils literal">false</tt> or <tt class="docutils literal">nil</tt></td>
 <td>n/a</td>
 </tr>
 <tr><td>[n]</td>
@@ -490,9 +491,9 @@ for, or control function, or nil</td>
 </ol>
 </dd>
 <dt><strong>Details:</strong></dt>
-<dd><p class="first">The parameter <em>repl</em> can be either a string, a function or a table.
-On each match made, it is converted into a value <em>repl_out</em> that may be used
-for the replacement.</p>
+<dd><p class="first">The parameter <em>repl</em> can be either a string, a function, a table,
+<tt class="docutils literal">false</tt> or <tt class="docutils literal">nil</tt>. On each match made, it is converted into a
+value <em>repl_out</em> that may be used for the replacement.</p>
 <p><em>repl_out</em> is generated differently depending on the type of <em>repl</em>:</p>
 <ol class="arabic simple">
 <li>If <em>repl</em> is a <em>string</em> then it is treated as a template for substitution,
@@ -536,6 +537,10 @@ value is that string;</li>
 submatch (or the entire match if there are no submatches), following the
 same rules as for the return value of <em>repl</em> call, described in the above
 paragraph.</li>
+<li>If <em>repl</em> is <tt class="docutils literal">false</tt> or <tt class="docutils literal">nil</tt>, no replacement is done. Note
+that, unusually for Lua, if <tt class="docutils literal">repl</tt> is absent, it is not taken
+to be <tt class="docutils literal">nil</tt>. This is to prevent programming errors caused by
+inadvertently missing out <em>repl</em>.</li>
 </ol>
 <p>Note: Under some circumstances, the value of <em>repl_out</em> may be ignored; see
 <a class="reference internal" href="#below">below</a>.</p>
@@ -1340,7 +1345,7 @@ subpatterns</em></li>
 </div>
 <div class="footer">
 <hr class="footer" />
-Generated on: 2012-10-04 17:08 UTC.
+Generated on: 2012-10-18 12:28 UTC.
 
 </div>
 </body>

@@ -1,3 +1,60 @@
+2012-10-18  Reuben Thomas <rrt@sc3d.org>
+
+	* Makefile: Makefile: fix things so rockspecs aren't distributed (a
+	hard problem) but do have the right MD5 sums
+
+2012-10-18  Reuben Thomas <rrt@sc3d.org>
+
+	* NEWS: NEWS: add for 2.7.1
+
+2012-10-18  Reuben Thomas <rrt@sc3d.org>
+
+	* Makefile: Makefile: make it harder to make mistakes Have install depend on dist, and dist depend on rockspecs, and make
+	rockspecs remove any old rockspec files, so it is much less likely
+	that the wrong rockspec is used, or out-of-date rockspecs
+	distributed.
+
+2012-10-18  Reuben Thomas <rrt@sc3d.org>
+
+	* Makefile: Makefile: exclude luarocks directory from distribution
+	zip
+
+2012-10-18  Reuben Thomas <rrt@sc3d.org>
+
+	* Makefile: Makefile: bump version to 2.7.1
+
+2012-10-18  Reuben Thomas <rrt@sc3d.org>
+
+	* doc/manual.txt, src/algo.h: Allow to signal no replacement in gsub
+	with a nil or false replacement.
+
+2012-10-17  Reuben Thomas <rrt@sc3d.org>
+
+	* rockspecs.lua: rockspecs.lua: fix some inconsistent whitespace
+
+2012-10-17  Reuben Thomas <rrt@sc3d.org>
+
+	* rockspecs.lua: rockspecs.lua: mention that we're Lua 5.2
+	compatible
+
+2012-10-17  Reuben Thomas <rrt@sc3d.org>
+
+	* src/algo.h: algo.h: fix to make it work on Lua 5.1; oops
+
+2012-10-17  Reuben Thomas <rrt@sc3d.org>
+
+	* .gitignore: .gitignore: add luarocks directory
+
+2012-10-17  Reuben Thomas <rrt@sc3d.org>
+
+	* luarocks-config.lua: Add luarocks-config.lua, needed for testing
+	rockspecs
+
+2012-10-05  Reuben Thomas <rrt@sc3d.org>
+
+	* Makefile: Makefile: fix testing of rockspecs, and remove
+	now-redundant warning to upload to github
+
 2012-10-05  Reuben Thomas <rrt@sc3d.org>
 
 	* Makefile: Makefile: make release depend on dist and check

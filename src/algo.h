@@ -134,7 +134,11 @@ static void check_subject (lua_State *L, int pos, TArgExec *argE)
                   lua_typename (L, type));
     argE->text = lua_touserdata (L, -1);
     lua_pop (L, 1);
+#if LUA_VERSION_NUM == 501
+    lua_objlen (L, pos);
+#else
     lua_len (L, pos);
+#endif
     type = lua_type (L, -1);
     if (type != LUA_TNUMBER)
       luaL_error (L, "subject's length is %s (expected number)",
@@ -168,8 +172,10 @@ static void checkarg_gsub (lua_State *L, TArgComp *argC, TArgExec *argE) {
   lua_tostring (L, 3);    /* converts number (if any) to string */
   argE->reptype = lua_type (L, 3);
   if (argE->reptype != LUA_TSTRING && argE->reptype != LUA_TTABLE &&
-      argE->reptype != LUA_TFUNCTION) {
-    luaL_typerror (L, 3, "string, table or function");
+      argE->reptype != LUA_TFUNCTION && argE->reptype != LUA_TNIL &&
+      (argE->reptype != LUA_TBOOLEAN ||
+       (argE->reptype == LUA_TBOOLEAN && lua_toboolean (L, 3)))) {
+    luaL_typerror (L, 3, "string, table, function, false or nil");
   }
   argE->funcpos = 3;
   argE->funcpos2 = 4;
@@ -330,7 +336,11 @@ static int algf_gsub (lua_State *L) {
       }
     }
     /*----------------------------------------------------------------*/
-    if (argE.reptype != LUA_TSTRING) {
+    else if (argE.reptype == LUA_TNIL || argE.reptype == LUA_TBOOLEAN) {
+      buffer_addlstring (pBuf, argE.text + from, to - from);
+    }
+    /*----------------------------------------------------------------*/
+    if (argE.reptype == LUA_TTABLE || argE.reptype == LUA_TFUNCTION) {
       if (lua_tostring (L, -1)) {
         buffer_addvalue (pBuf, -1);
         curr_subst = 1;
