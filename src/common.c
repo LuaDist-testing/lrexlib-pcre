@@ -8,6 +8,8 @@
 #include "lauxlib.h"
 #include "common.h"
 
+#define N_ALIGN sizeof(int)
+
 /* the table must be on Lua stack top */
 int get_int_field (lua_State *L, const char* field)
 {
@@ -26,7 +28,9 @@ void set_int_field (lua_State *L, const char* field, int val)
 }
 
 void *Lmalloc(lua_State *L, size_t size) {
-  void *p = malloc(size);
+  void *ud;
+  lua_Alloc lalloc = lua_getallocf(L, &ud);
+  void *p = lalloc(L, NULL, 0, size);
   if(p == NULL)
     luaL_error(L, "malloc failed");
   return p;
@@ -95,7 +99,6 @@ void freelist_free (TFreeList *fl) {
  *  *************
  *  Auto-extensible array of characters for building long strings incrementally.
  *    * Differs from luaL_Buffer in that:
- *       *  it does not use Lua facilities (except luaL_error when malloc fails)
  *       *  its operations do not change Lua stack top position
  *       *  buffer_addvalue does not extract the value from Lua stack
  *       *  buffer_pushresult does not have to be the last operation
@@ -114,7 +117,9 @@ void freelist_free (TFreeList *fl) {
 enum { ID_NUMBER, ID_STRING };
 
 void buffer_init (TBuffer *buf, size_t sz, lua_State *L, TFreeList *fl) {
-  buf->arr = (char*) malloc (sz);
+  void *ud;
+  lua_Alloc lalloc = lua_getallocf(L, &ud);
+  buf->arr = (char*) lalloc (ud, NULL, 0, sz);
   if (!buf->arr) {
     freelist_free (fl);
     luaL_error (L, "malloc failed");
@@ -127,7 +132,9 @@ void buffer_init (TBuffer *buf, size_t sz, lua_State *L, TFreeList *fl) {
 }
 
 void buffer_free (TBuffer *buf) {
-  free (buf->arr);
+  void *ud;
+  lua_Alloc lalloc = lua_getallocf(buf->L, &ud);
+  lalloc (buf->L, buf->arr, buf->size, 0);
 }
 
 void buffer_clear (TBuffer *buf) {
@@ -145,7 +152,9 @@ void buffer_addbuffer (TBuffer *trg, TBuffer *src) {
 void buffer_addlstring (TBuffer *buf, const void *src, size_t sz) {
   size_t newtop = buf->top + sz;
   if (newtop > buf->size) {
-    char *p = (char*) realloc (buf->arr, 2 * newtop);   /* 2x expansion */
+    void *ud;
+    lua_Alloc lalloc = lua_getallocf(buf->L, &ud);
+    char *p = (char*) lalloc (buf->L, buf->arr, buf->size, 2 * newtop);   /* 2x expansion */
     if (!p) {
       freelist_free (buf->freelist);
       luaL_error (buf->L, "realloc failed");
@@ -153,7 +162,8 @@ void buffer_addlstring (TBuffer *buf, const void *src, size_t sz) {
     buf->arr = p;
     buf->size = 2 * newtop;
   }
-  memcpy (buf->arr + buf->top, src, sz);
+  if (src)
+    memcpy (buf->arr + buf->top, src, sz);
   buf->top = newtop;
 }
 
@@ -163,14 +173,17 @@ void buffer_addvalue (TBuffer *buf, int stackpos) {
   buffer_addlstring (buf, p, len);
 }
 
-static void bufferZ_addlstring (TBuffer *buf, const void *src, size_t len) {
+void bufferZ_addlstring (TBuffer *buf, const void *src, size_t len) {
+  int n;
   size_t header[2] = { ID_STRING };
   header[1] = len;
   buffer_addlstring (buf, header, sizeof (header));
   buffer_addlstring (buf, src, len);
+  n = len % N_ALIGN;
+  if (n) buffer_addlstring (buf, NULL, N_ALIGN - n);
 }
 
-static void bufferZ_addnum (TBuffer *buf, size_t num) {
+void bufferZ_addnum (TBuffer *buf, size_t num) {
   size_t header[2] = { ID_NUMBER };
   header[1] = num;
   buffer_addlstring (buf, header, sizeof (header));
@@ -197,7 +210,7 @@ void bufferZ_putrepstring (TBuffer *BufRep, int reppos, int nsub) {
         if (isdigit (*q)) {
           int num;
           *dbuf = *q;
-          num = atoi (dbuf);
+          num = strtol (dbuf, NULL, 10);
           if (num == 1 && nsub == 0)
             num = 0;
           else if (num > nsub) {
@@ -230,11 +243,21 @@ int bufferZ_next (TBuffer *buf, size_t *iter, size_t *num, const char **str) {
     *iter += 2 * sizeof (size_t);
     *str = NULL;
     if (*ptr_header == ID_STRING) {
+      int n;
       *str = buf->arr + *iter;
       *iter += *num;
+      n = *iter % N_ALIGN;
+      if (n) *iter += (N_ALIGN - n);
     }
     return 1;
   }
   return 0;
 }
 
+#if LUA_VERSION_NUM > 501
+int luaL_typerror (lua_State *L, int narg, const char *tname) {
+  const char *msg = lua_pushfstring(L, "%s expected, got %s",
+                                    tname, luaL_typename(L, narg));
+  return luaL_argerror(L, narg, msg);
+}
+#endif
