@@ -1,4 +1,4 @@
-# _common.mak:  GNU Make is assumed
+# tested with GNU Make
 
 LIBS      = --add-stdcall-alias $(MYLIBS) -s
 INCS      = $(MYINCS)

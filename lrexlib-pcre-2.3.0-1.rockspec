@@ -1,16 +1,16 @@
 -- This file was automatically generated for the LuaDist project.
 
 package="lrexlib-pcre"
-version="2.2.2-2"
+version="2.3.0-1"
 -- LuaDist source
 source = {
-  tag = "2.2.2-2",
+  tag = "2.3.0-1",
   url = "git://github.com/LuaDist-testing/lrexlib-pcre.git"
 }
 -- Original source
 -- source = {
---    url = "http://luaforge.net/frs/download.php/3018/lrexlib-2.2.2.zip",
---    md5 = "e6b18dbad4cf2942ad10535c629b8ae9"
+--    url = "http://luaforge.net/frs/download.php/3439/lrexlib-2.3.0.zip",
+--    md5 = "795c33965fb6eb0a981aa419028e3ef0"
 -- }
 description = {
    summary = "Lua binding of the PCRE regular expression library.",
@@ -31,19 +31,13 @@ external_dependencies = {
    }
 }
 build = {
-   type = "make",
-   install_pass = false,
-   build_target = "build_pcre",
-   variables = {
-      INC = "-I$(LUA_INCDIR) -I$(PCRE_INCDIR)",
-      LIB = "-L$(PCRE_LIBDIR) -lpcre",
-      LD = "$(LD)",
-      LDFLAGS = "$(LIBFLAG)",
-      MYCFLAGS = "-W -Wall $(CFLAGS)",
-   },
-   install = {
-      lib = {
-         "src/rex_pcre.so"
+   type = "module",
+   modules = {
+      rex_pcre = {
+         sources = {"src/common.c", "src/lpcre.c", "src/lpcre_f.c"},
+         libraries = {"pcre"},
+         incdirs = {"$(PCRE_INCDIR)"},
+         libdirs = {"$(PCRE_LIBDIR)"}
       }
    }
 }
