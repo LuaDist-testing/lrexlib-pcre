@@ -2,6 +2,7 @@
 
 local luatest = require "luatest"
 local N = luatest.NT
+local unpack = unpack or table.unpack
 
 local function norm(a) return a==nil and N or a end
 
@@ -60,7 +61,7 @@ end
 
 local function set_f_gmatch (lib, flg)
   -- gmatch (s, p, [cf], [ef])
-  local pCSV = "(^[^,]*)|,([^,]*)"
+  local pCSV = "[^,]*"
   local F = false
   local function test_gmatch (subj, patt)
     local out, guard = {}, 10
@@ -74,13 +75,15 @@ local function set_f_gmatch (lib, flg)
   return {
     Name = "Function gmatch",
     Func = test_gmatch,
-  --{  subj             patt   results }
-    { {"a\0c",          "." }, {{"a",N},{"\0",N},{"c",N}} },--nuls in subj
-    { {"",              pCSV}, {{"",F}} },
-    { {"12",            pCSV}, {{"12",F}} },
-    { {",",             pCSV}, {{"", F},{F,""}} },
-    { {"12,,45",        pCSV}, {{"12",F},{F,""},{F,"45"}} },
-    { {",,12,45,,ab,",  pCSV}, {{"",F},{F,""},{F,"12"},{F,"45"},{F,""},{F,"ab"},{F,""}} },
+  --{  subj             patt    results }
+    { {"a\0c",          "." },  {{"a",N},{"\0",N},{"c",N}} },--nuls in subj
+    { {"",              pCSV},  {{"",N}} },
+    { {"12",            pCSV},  {{"12",N}} },
+    { {",",             pCSV},  {{"", N},{"", N}} },
+    { {"12,,45",        pCSV},  {{"12",N},{"",N},{"45",N}} },
+    { {",,12,45,,ab,",  pCSV},  {{"",N},{"",N},{"12",N},{"45",N},{"",N},{"ab",N},{"",N}} },
+    { {"12345",     "(.)(.)"},  {{"1","2"},{"3","4"}} },
+    { {"12345",     "(.)(.?)"}, {{"1","2"},{"3","4"},{"5",""}} },
   }
 end
 
@@ -100,10 +103,13 @@ local function set_f_split (lib, flg)
     Func = test_split,
   --{  subj             patt      results }
     { {"a,\0,c",       ","},     {{"a",",",N},{"\0",",",N},{"c",N,N},   } },--nuls in subj
-    { {"ab",           "$"},     {{"ab","",N}, {"",N,N},               } },
-    { {"ab",         "^|$"},     {{"", "", N}, {"ab","",N},  {"",N,N}, } },
-    { {"ab45ab","(?<=ab).*?"},   {{"ab","",N}, {"45ab","",N},{"",N,N}, } },
-    { {"ab",         "\\b"},     {{"", "", N}, {"ab","",N},  {"",N,N}, } },
+    { {"ab",           "$"},     {{"ab","",N}, {"",N,N}                } },
+    { {"ab",         "^|$"},     {{"", "", N}, {"ab","",N}, {"",N,N}   } },
+    { {"ab45ab","(?<=ab).*?"},   {{"ab","",N}, {"45ab","",N}, {"",N,N} } },
+    { {"ab",         "\\b"},     {{"", "", N}, {"ab","",N}, {"",N,N}   } },
+    { {"ab",         ".*" },     {{"","ab",N}, {"",N,N}                } },
+    { {"ab",         ".*?" },    {{"","",N}, {"a","",N}, {"b","",N}, {"",N,N} } },
+    { {"ab;de",      ";*" },     {{"","",N},{"a","",N},{"b",";",N},{"d","",N},{"e","",N},{"",N,N} }},
   }
 end
 
@@ -136,15 +142,17 @@ local function set_m_tfind (lib, flg)
 end
 
 local function set_m_dfa_exec (lib, flg)
+  local ver = tonumber(lib.version():match("%d+%.%d+"))
+  local NAP = ver < 8.34 and "" or "(*NO_AUTO_POSSESS)"
   return {
   Name = "Method dfa_exec",
   Method = "dfa_exec",
 --{patt,cf,lo},           {subj,st,ef,os,ws}        { results }
-  { {".+"},               {"abcd"},                 {1,{4,3,2,1},4} }, -- [none]
-  { {".+"},               {"abcd",2},               {2,{4,3,2},  3} }, -- positive st
-  { {".+"},               {"abcd",-2},              {3,{4,3},    2} }, -- negative st
+  { {NAP..".+"},          {"abcd"},                 {1,{4,3,2,1},4} }, -- [none]
+  { {NAP..".+"},          {"abcd",2},               {2,{4,3,2},  3} }, -- positive st
+  { {NAP..".+"},          {"abcd",-2},              {3,{4,3},    2} }, -- negative st
   { {".+"},               {"abcd",5},               {N }            }, -- failing st
-  { {".*"},               {"abcd"},                 {1,{4,3,2,1,0},5}}, -- [none]
+  { {NAP..".*"},          {"abcd"},                 {1,{4,3,2,1,0},5}}, -- [none]
   { {".*?"},              {"abcd"},                 {1,{4,3,2,1,0},5}}, -- non-greedy
   { {"aBC",flg.CASELESS}, {"abc"},                  {1,{3},1}  }, -- cf
   { {"aBC","i"         }, {"abc"},                  {1,{3},1}  }, -- cf
@@ -154,8 +162,14 @@ local function set_m_dfa_exec (lib, flg)
   { { "(.)b.(d)"},        {"abcd"},                 {1,{4},1}  }, --[captures]
   { {"abc"},              {"ab"},                   {N }       },
   { {"abc"},              {"ab",N,flg.PARTIAL},     {1,{2},flg.ERROR_PARTIAL} },
-  { {".+"},     {string.rep("a",50),N,N,50,50},     {1, fill(50,26), 0}},-- small ovecsize
+  { {NAP..".+"}, {string.rep("a",50),N,N,50,50},    {1, fill(50,26), 0}},-- small ovecsize
 }
+end
+
+local function set_m_fullinfo (lib, flg)
+  local r = lib.new("(foo)(bar)")
+  local info = r:fullinfo()
+  assert(info.CAPTURECOUNT == 2)
 end
 
 return function (libname)
@@ -168,6 +182,7 @@ return function (libname)
     set_f_split  (lib, flags),
     set_m_exec   (lib, flags),
     set_m_tfind  (lib, flags),
+    set_m_fullinfo (lib, flags),
   }
   if flags.MAJOR >= 4 then
     table.insert (sets, set_named_subpatterns (lib, flags))

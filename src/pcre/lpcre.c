@@ -5,6 +5,7 @@
 #include <string.h>
 #include <locale.h>
 #include <ctype.h>
+#include <stdint.h>
 #include <pcre.h>
 
 #include "lua.h"
@@ -48,7 +49,7 @@ static void checkarg_compile (lua_State *L, int pos, TArgComp *argC);
   lua_pushlstring (L, (text) + ALG_SUBBEG(ud,n), ALG_SUBLEN(ud,n))
 
 #define ALG_PUSHSUB_OR_FALSE(L,ud,text,n) \
-  (ALG_SUBVALID(ud,n) ? ALG_PUSHSUB (L,ud,text,n) : lua_pushboolean (L,0))
+  (ALG_SUBVALID(ud,n) ? (void) ALG_PUSHSUB (L,ud,text,n) : lua_pushboolean (L,0))
 
 #define ALG_PUSHSTART(L,ud,offs,n)   lua_pushinteger(L, (offs) + ALG_SUBBEG(ud,n) + 1)
 #define ALG_PUSHEND(L,ud,offs,n)     lua_pushinteger(L, (offs) + ALG_SUBEND(ud,n))
@@ -57,7 +58,6 @@ static void checkarg_compile (lua_State *L, int pos, TArgComp *argC);
 
 #define ALG_BASE(st)  0
 #define ALG_PULL
-#define ALG_USERETRY
 
 typedef struct {
   pcre       * pr;
@@ -296,18 +296,10 @@ static int Lpcre_dfa_exec (lua_State *L)
 }
 #endif /* #if PCRE_MAJOR >= 6 */
 
-#ifdef ALG_USERETRY
-  static int gmatch_exec (TUserdata *ud, TArgExec *argE, int retry) {
-    int eflags = retry ? (argE->eflags|PCRE_NOTEMPTY|PCRE_ANCHORED) : argE->eflags;
-    return pcre_exec (ud->pr, ud->extra, argE->text, argE->textlen,
-      argE->startoffset, eflags, ud->match, (ALG_NSUB(ud) + 1) * 3);
-  }
-#else
-  static int gmatch_exec (TUserdata *ud, TArgExec *argE) {
-    return pcre_exec (ud->pr, ud->extra, argE->text, argE->textlen,
-      argE->startoffset, argE->eflags, ud->match, (ALG_NSUB(ud) + 1) * 3);
-  }
-#endif
+static int gmatch_exec (TUserdata *ud, TArgExec *argE) {
+  return pcre_exec (ud->pr, ud->extra, argE->text, argE->textlen,
+    argE->startoffset, argE->eflags, ud->match, (ALG_NSUB(ud) + 1) * 3);
+}
 
 static void gmatch_pushsubject (lua_State *L, TArgExec *argE) {
   lua_pushlstring (L, argE->text, argE->textlen);
@@ -318,18 +310,10 @@ static int findmatch_exec (TPcre *ud, TArgExec *argE) {
     argE->startoffset, argE->eflags, ud->match, (ALG_NSUB(ud) + 1) * 3);
 }
 
-#ifdef ALG_USERETRY
-  static int gsub_exec (TPcre *ud, TArgExec *argE, int st, int retry) {
-    int eflags = retry ? (argE->eflags|PCRE_NOTEMPTY|PCRE_ANCHORED) : argE->eflags;
-    return pcre_exec (ud->pr, ud->extra, argE->text, argE->textlen,
-      st, eflags, ud->match, (ALG_NSUB(ud) + 1) * 3);
-  }
-#else
-  static int gsub_exec (TPcre *ud, TArgExec *argE, int st) {
-    return pcre_exec (ud->pr, ud->extra, argE->text, argE->textlen,
-      st, argE->eflags, ud->match, (ALG_NSUB(ud) + 1) * 3);
-  }
-#endif
+static int gsub_exec (TPcre *ud, TArgExec *argE, int st) {
+  return pcre_exec (ud->pr, ud->extra, argE->text, argE->textlen,
+    st, argE->eflags, ud->match, (ALG_NSUB(ud) + 1) * 3);
+}
 
 static int split_exec (TPcre *ud, TArgExec *argE, int offset) {
   return pcre_exec (ud->pr, ud->extra, argE->text, argE->textlen, offset,
@@ -368,6 +352,56 @@ static int Lpcre_version (lua_State *L) {
   return 1;
 }
 
+#define SET_INFO_FIELD(L,ud,what,name,valtype) { \
+  valtype val; \
+  if (0 == pcre_fullinfo (ud->pr, ud->extra, what, &val)) { \
+    lua_pushnumber (L, val); \
+    lua_setfield (L, -2, name); \
+  } \
+}
+
+static int Lpcre_fullinfo (lua_State *L) {
+  TPcre *ud = check_ud (L);
+  lua_newtable(L);
+
+  SET_INFO_FIELD (L, ud, PCRE_INFO_BACKREFMAX,          "BACKREFMAX",          int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_CAPTURECOUNT,        "CAPTURECOUNT",        int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_FIRSTBYTE,           "FIRSTBYTE",           int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_HASCRORLF,           "HASCRORLF",           int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_JCHANGED,            "JCHANGED",            int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_JIT,                 "JIT",                 int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_JITSIZE,             "JITSIZE",             size_t);
+#ifdef PCRE_INFO_MATCH_EMPTY
+  SET_INFO_FIELD (L, ud, PCRE_INFO_MATCH_EMPTY,         "MATCH_EMPTY",         int)
+#endif
+#ifdef PCRE_INFO_MATCHLIMIT
+  SET_INFO_FIELD (L, ud, PCRE_INFO_MATCHLIMIT,          "MATCHLIMIT",          uint32_t)
+#endif
+  SET_INFO_FIELD (L, ud, PCRE_INFO_MAXLOOKBEHIND,       "MAXLOOKBEHIND",       int) /* int ? */
+  SET_INFO_FIELD (L, ud, PCRE_INFO_MINLENGTH,           "MINLENGTH",           int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_OKPARTIAL,           "OKPARTIAL",           int)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_OPTIONS,             "OPTIONS",             unsigned long)
+#ifdef PCRE_INFO_RECURSIONLIMIT
+  SET_INFO_FIELD (L, ud, PCRE_INFO_RECURSIONLIMIT,      "RECURSIONLIMIT",      uint32_t)
+#endif
+  SET_INFO_FIELD (L, ud, PCRE_INFO_SIZE,                "SIZE",                size_t)
+  SET_INFO_FIELD (L, ud, PCRE_INFO_STUDYSIZE,           "STUDYSIZE",           size_t)
+#ifdef PCRE_INFO_FIRSTCHARACTERFLAGS
+  SET_INFO_FIELD (L, ud, PCRE_INFO_FIRSTCHARACTERFLAGS, "FIRSTCHARACTERFLAGS", int)
+#endif
+#ifdef PCRE_INFO_FIRSTCHARACTER
+  SET_INFO_FIELD (L, ud, PCRE_INFO_FIRSTCHARACTER,      "FIRSTCHARACTER",      uint32_t)
+#endif
+#ifdef PCRE_INFO_REQUIREDCHARFLAGS
+  SET_INFO_FIELD (L, ud, PCRE_INFO_REQUIREDCHARFLAGS,   "REQUIREDCHARFLAGS",   int)
+#endif
+#ifdef PCRE_INFO_REQUIREDCHAR
+  SET_INFO_FIELD (L, ud, PCRE_INFO_REQUIREDCHAR,        "REQUIREDCHAR",        uint32_t)
+#endif
+
+  return 1;
+}
+
 static const luaL_Reg chartables_meta[] = {
   { "__gc",        chartables_gc },
   { "__tostring",  chartables_tostring },
@@ -382,6 +416,7 @@ static const luaL_Reg r_methods[] = {
 #if PCRE_MAJOR >= 6
   { "dfa_exec",    Lpcre_dfa_exec },
 #endif
+  { "fullinfo",    Lpcre_fullinfo },
   { "__gc",        Lpcre_gc },
   { "__tostring",  Lpcre_tostring },
   { NULL, NULL }
@@ -392,6 +427,7 @@ static const luaL_Reg r_functions[] = {
   { "find",        algf_find },
   { "gmatch",      algf_gmatch },
   { "gsub",        algf_gsub },
+  { "count",       algf_count },
   { "split",       algf_split },
   { "new",         algf_new },
   { "flags",       Lpcre_get_flags },

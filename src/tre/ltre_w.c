@@ -41,7 +41,7 @@ void bufferZ_putrepstringW (TBuffer *BufRep, int reppos, int nsub);
   lua_pushlstring (L, (text) + ALG_SUBBEG(ud,n), ALG_SUBLEN(ud,n))
 
 #define ALG_PUSHSUB_OR_FALSE(L,ud,text,n) \
-  (ALG_SUBVALID(ud,n) ? ALG_PUSHSUB (L,ud,text,n) : lua_pushboolean (L,0))
+  (ALG_SUBVALID(ud,n) ? (void) ALG_PUSHSUB (L,ud,text,n) : lua_pushboolean (L,0))
 
 #define ALG_PUSHSTART(L,ud,offs,n)   lua_pushinteger(L, ((offs) + ALG_SUBBEG(ud,n))/ALG_CHARSIZE + 1)
 #define ALG_PUSHEND(L,ud,offs,n)     lua_pushinteger(L, ((offs) + ALG_SUBEND(ud,n))/ALG_CHARSIZE)
@@ -212,6 +212,7 @@ static const luaL_Reg r_functions[] = {
   { "wfind",         algf_find },
   { "wgmatch",       algf_gmatch },
   { "wgsub",         algf_gsub },
+  { "wcount",        algf_count },
   { "wmatch",        algf_match },
   { "wsplit",        algf_split },
   { NULL, NULL }

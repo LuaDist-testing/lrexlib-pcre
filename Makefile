@@ -1,6 +1,6 @@
 # Makefile for lrexlib
 
-VERSION = 2.7.2
+VERSION = 2.8.0
 PROJECT = lrexlib
 PROJECT_VERSIONED = $(PROJECT)-$(VERSION)
 
@@ -8,7 +8,7 @@ PROJECT_VERSIONED = $(PROJECT)-$(VERSION)
 LUA = lua
 LUAROCKS = luarocks
 CP = cp -a
-RM = rm
+RM = rm -f
 RST2HTML = rst2html
 REGNAMES = gnu pcre posix oniguruma tre
 LUAROCKS_COMMAND = make
@@ -31,14 +31,14 @@ install: rockspecs
 
 rockspecs:
 	rm -f *.rockspec
-	$(LUA) mkrockspecs.lua $(VERSION)
+	$(LUA) mkrockspecs.lua $(PROJECT) $(VERSION)
 
 doc/index.txt: README.rst
 	$(CP) $< $@
 
 check: build
 	for i in $(REGNAMES); do \
-	  LUA_PATH="test/?.lua;$(LUA_PATH)" $(LUA) test/runtest.lua -dsrc/$$i $$i; \
+	  LUA_PATH="test/?.lua;$(LUA_PATH);" $(LUA) test/runtest.lua -dsrc/$$i $$i; \
 	done
 
 clean:
@@ -50,5 +50,5 @@ release: check
 	git tag -a -m "Release tag" rel-`echo $(VERSION) | sed -e 's/\./-/g'` && \
 	git push && git push --tags && \
 	$(MAKE) build LUAROCKS_COMMAND=build && \
-	woger lua package=$(PROJECT) package_name=$(PROJECT) version=$(VERSION) description="Lua binding for regex libraries" notes=release-notes home="https://github.com/rrthomas/$(PROJECT)"
+	woger lua package=$(PROJECT) package_name=$(PROJECT) version=$(VERSION) description="Lua binding for regex libraries" notes=release-notes home="`$(LUA) -e'version="'$(VERSION)'"; flavour="none"; t = require "rockspecs"; print(t.default.description.homepage)'`"
 	rm -f release-notes

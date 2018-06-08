@@ -5,6 +5,7 @@
 
 local luatest = require "luatest"
 local N = luatest.NT
+local unpack = unpack or table.unpack
 
 local function norm(a) return a==nil and N or a end
 
@@ -32,8 +33,20 @@ local function set_f_gmatch (lib, flg)
   --{  subj             patt         results }
     { {"ab",            lib.new"."}, {{"a",N}, {"b",N} } },
     { {("abcd"):rep(3), "(.)b.(d)"}, {{"a","d"},{"a","d"},{"a","d"}} },
-    { {"abcd",          ".*" },      {{"abcd",N},{"",N}  } },--zero-length match
+    { {"abcd",          ".*" },      {{"abcd",N} } },--zero-length match
     { {"abc",           "^." },      {{"a",N}} },--anchored pattern
+  }
+end
+
+local function set_f_count (lib, flg)
+  return {
+    Name = "Function count",
+    Func = lib.count,
+  --{  subj             patt         results }
+    { {"ab",            lib.new"."}, { 2 } },
+    { {("abcd"):rep(3), "(.)b.(d)"}, { 3 } },
+    { {"abcd",          ".*" },      { 1 } },
+    { {"abc",           "^." },      { 1 } },
   }
 end
 
@@ -216,7 +229,7 @@ local function set_f_gsub4 (lib, flg)
   --{ s,           p,              f, n,  res1,      res2, res3 },
     { {"a2c3",     ".",            "#" }, {"####",      4, 4} }, -- test .
     { {"a2c3",     ".+",           "#" }, {"#",         1, 1} }, -- test .+
-    { {"a2c3",     ".*",           "#" }, {"##",        2, 2} }, -- test .*
+    { {"a2c3",     ".*",           "#" }, {"#",         1, 1} }, -- test .*
     { {"/* */ */", "\\/\\*(.*)\\*\\/", "#" }, {"#",     1, 1} },
     { {"a2c3",     "[0-9]",        "#" }, {"a#c#",      2, 2} }, -- test %d
     { {"a2c3",     "[^0-9]",       "#" }, {"#2#3",      2, 2} }, -- test %D
@@ -308,6 +321,7 @@ return function (libname)
     set_m_tfind     (lib),
     set_m_find      (lib),
     set_m_match     (lib),
+    set_f_count     (lib),
     set_f_gsub1     (lib),
     set_f_gsub2     (lib),
     set_f_gsub3     (lib),
